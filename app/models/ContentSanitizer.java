@@ -5,7 +5,7 @@ import org.owasp.html.PolicyFactory;
 
 public final class ContentSanitizer {
     private static final PolicyFactory POLICY = new HtmlPolicyBuilder()
-            .allowElements("p", "br", "b", "strong", "i", "em", "u", "ul", "ol", "li", "a")
+            .allowElements("p", "br", "hr", "b", "strong", "i", "em", "u", "ul", "ol", "li", "a")
             .allowUrlProtocols("http", "https")
             .allowAttributes("href", "title").onElements("a")
             .requireRelNofollowOnLinks()

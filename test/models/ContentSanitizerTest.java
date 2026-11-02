@@ -24,6 +24,14 @@ public class ContentSanitizerTest {
     }
 
     @Test
+    public void keepsHorizontalRules() {
+        String result = ContentSanitizer.sanitizeHtml("above<hr>below");
+
+        assertTrue(result.contains("<hr"));
+        assertTrue(result.contains("below"));
+    }
+
+    @Test
     public void removesScriptsHandlersAndUnsafeUrls() {
         String result = ContentSanitizer.sanitizeHtml(
                 "<script>alert(1)</script><b onclick=\"alert(1)\">text</b><a href=\"javascript:alert(1)\">bad</a>");
