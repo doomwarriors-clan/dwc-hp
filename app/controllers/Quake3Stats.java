@@ -3,6 +3,7 @@ package controllers;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -85,19 +86,33 @@ public final class Quake3Stats {
      * One line in the latest matches: a duel shows the two players, a team game the two
      * teams. winner is 1 for the left side, 2 for the right side and 0 for a draw.
      * leftHuman and rightHuman tell a duel's players from bots; a team is neither.
-     * demos are the players' views the server recorded, multiviewDemo all of them in
-     * one file (null when there is none).
+     * players come sorted by score, each with the view the server recorded of them;
+     * multiviewDemo holds all views in one file (null when there is none).
      */
     public record MatchRow(LocalDateTime start, String gametype, String map, int durationSeconds, boolean teamGame,
                            String leftName, boolean leftHuman, int leftScore,
                            String rightName, boolean rightHuman, int rightScore, int winner,
-                           List<String> players, List<MatchDemo> demos, MatchDemo multiviewDemo) {
+                           List<RowPlayer> players, MatchDemo multiviewDemo) {
         public String duration() {
             return durationSeconds / 60 + ":" + String.format("%02d", durationSeconds % 60);
         }
 
         public String result() {
             return leftName + " " + leftScore + " : " + rightScore + " " + rightName;
+        }
+
+        /** The players' views, humans before bots. */
+        public List<MatchDemo> demos() {
+            return players.stream().filter(player -> player.demo() != null)
+                    .sorted(Comparator.comparing(RowPlayer::bot))
+                    .map(RowPlayer::demo).toList();
+        }
+    }
+
+    /** A player in the latest matches, with the demo from their view or null when there is none. */
+    public record RowPlayer(String name, int score, boolean bot, MatchDemo demo) {
+        public String label() {
+            return name + " (" + score + ")";
         }
     }
 
@@ -237,7 +252,7 @@ public final class Quake3Stats {
             entry.put("rightScore", match.rightScore());
             entry.put("winner", match.winner() == 1 ? match.leftName() : match.winner() == 2 ? match.rightName() : null);
             ArrayNode names = entry.putArray("players");
-            match.players().forEach(names::add);
+            match.players().forEach(player -> names.add(player.label()));
             ArrayNode demos = entry.putArray("demos");
             match.demos().forEach(demo -> demos.addObject()
                     .put("player", demo.player()).put("bot", demo.bot()).put("url", demo.url()));
@@ -301,35 +316,39 @@ public final class Quake3Stats {
     }
 
     /**
-     * The server's demos of a match with at least one human: the multiview demo
-     * first, then one per player, humans before bots, named like the statistics
-     * name them. Spectators' views are left out.
+     * The server's demos of a match with at least one human: views lines up with the
+     * match's players (null for a player without one), named like the statistics name
+     * them; spectators' views are left out. multiview is null when there is none.
      */
-    private static List<MatchDemo> demos(Quake3GamesLog.Match match, List<Quake3ServerDemos.Demo> serverDemos,
-                                         Map<String, Identity> aliases) {
-        if (serverDemos.isEmpty() || match.players().stream().allMatch(Quake3GamesLog.MatchPlayer::bot)) {
-            return List.of();
+    private record MatchDemos(List<MatchDemo> views, MatchDemo multiview) {
+    }
+
+    private static MatchDemos demos(Quake3GamesLog.Match match, List<Quake3ServerDemos.Demo> serverDemos,
+                                    Map<String, Identity> aliases) {
+        List<Quake3GamesLog.MatchPlayer> players = match.players();
+        MatchDemo[] views = new MatchDemo[players.size()];
+        MatchDemo multiview = null;
+        if (serverDemos.isEmpty() || players.stream().allMatch(Quake3GamesLog.MatchPlayer::bot)) {
+            return new MatchDemos(Arrays.asList(views), null);
         }
-        List<MatchDemo> demos = new ArrayList<>();
-        List<MatchDemo> botDemos = new ArrayList<>();
         for (Quake3ServerDemos.Demo demo : Quake3ServerDemos.forMatch(serverDemos, match.gametype(), match.start())) {
             if (demo.multiview()) {
-                demos.add(new MatchDemo(null, false, demo.mode(), demo.file(),
-                        Quake3ServerDemos.downloadName("", match.gametype(), match.map(), match.start(), true)));
+                multiview = new MatchDemo(null, false, demo.mode(), demo.file(),
+                        Quake3ServerDemos.downloadName("", match.gametype(), match.map(), match.start(), true));
                 continue;
             }
-            match.players().stream()
-                    .filter(player -> Quake3ServerDemos.fileNamePart(player.name()).equalsIgnoreCase(demo.player()))
-                    .findFirst()
-                    .ifPresent(player -> {
-                        Identity identity = player.bot() ? null : aliases.get(player.name().toLowerCase());
-                        String name = identity == null ? player.name() : identity.name();
-                        (player.bot() ? botDemos : demos).add(new MatchDemo(name, player.bot(), demo.mode(), demo.file(),
-                                Quake3ServerDemos.downloadName(name, match.gametype(), match.map(), match.start(), false)));
-                    });
+            for (int i = 0; i < players.size(); i++) {
+                Quake3GamesLog.MatchPlayer player = players.get(i);
+                if (views[i] == null && Quake3ServerDemos.fileNamePart(player.name()).equalsIgnoreCase(demo.player())) {
+                    Identity identity = player.bot() ? null : aliases.get(player.name().toLowerCase());
+                    String name = identity == null ? player.name() : identity.name();
+                    views[i] = new MatchDemo(name, player.bot(), demo.mode(), demo.file(),
+                            Quake3ServerDemos.downloadName(name, match.gametype(), match.map(), match.start(), false));
+                    break;
+                }
+            }
         }
-        demos.addAll(botDemos);
-        return demos;
+        return new MatchDemos(Arrays.asList(views), multiview);
     }
 
     /**
@@ -367,9 +386,13 @@ public final class Quake3Stats {
         return new Quake3Stats(List.of(), List.of(), 0);
     }
 
-    private static MatchRow row(Quake3GamesLog.Match match, List<MatchDemo> demos) {
-        List<String> players = match.players().stream()
-                .map(player -> player.name() + " (" + player.score() + ")").toList();
+    /** match is already renamed; demos come from the same match before the renaming, so its players line up. */
+    private static MatchRow row(Quake3GamesLog.Match match, MatchDemos demos) {
+        List<RowPlayer> players = new ArrayList<>();
+        for (int i = 0; i < match.players().size(); i++) {
+            Quake3GamesLog.MatchPlayer player = match.players().get(i);
+            players.add(new RowPlayer(player.name(), player.score(), player.bot(), demos.views().get(i)));
+        }
         String leftName, rightName;
         boolean leftHuman = false, rightHuman = false;
         int leftScore, rightScore;
@@ -388,10 +411,8 @@ public final class Quake3Stats {
             rightScore = match.players().get(1).score();
         }
         int winner = leftScore > rightScore ? 1 : rightScore > leftScore ? 2 : 0;
-        MatchDemo multiview = demos.stream().filter(demo -> demo.player() == null).findFirst().orElse(null);
-        List<MatchDemo> views = demos.stream().filter(demo -> demo.player() != null).toList();
         return new MatchRow(match.start(), match.gametype(), match.map(), match.durationSeconds(), match.teamGame(),
-                leftName, leftHuman, leftScore, rightName, rightHuman, rightScore, winner, players, views, multiview);
+                leftName, leftHuman, leftScore, rightName, rightHuman, rightScore, winner, players, demos.multiview());
     }
 
     private static final class Totals {

@@ -441,7 +441,8 @@ to the `games.log` they belong to, so `DWC_QUAKE3_LOG_FOLDER` is all this needs:
 Under "Latest matches" on `/quake3/stats` (and in `stats.json`) a match gets
 its demos when the recording on its server started within 20 seconds of the
 match start in the `games.log`; both times come from the same server clock.
-There is one link per player, humans first and bots marked as such, plus
+On the page each player's name links to the demo from their view (in
+`stats.json` the `demos` list has humans first, bots marked as such), plus
 "Multiview" for the whole recording, which only a Quake3e client with
 multiview (n4cer/Quake3e) plays. Spectators' views, matches without humans
 and aborted matches (which never reach the statistics) get none. Demos appear

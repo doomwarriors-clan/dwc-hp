@@ -87,6 +87,12 @@ public class Quake3ServerDemosTest {
                 demos.get(0).url());
         assertEquals("dwc.Sarge-duel-pro_q3dm6-2026.11.03-1718.dm_68", demos.get(1).downloadName());
 
+        // on the page every player, in score order, carries the demo from their view
+        List<Quake3Stats.RowPlayer> players = stats.recentMatches().get(0).players();
+        assertEquals(List.of("Sarge (5)", "dwc.n4cer (3)"), players.stream().map(Quake3Stats.RowPlayer::label).toList());
+        assertEquals("mv-261103-171802-01-Sarge.dm_68", players.get(0).demo().file());
+        assertEquals("mv-261103-171802-00-dwcn4cer.dm_68", players.get(1).demo().file());
+
         Quake3Stats.MatchDemo multiview = stats.recentMatches().get(0).multiviewDemo();
         assertEquals("mv-261103-171802.dm_71", multiview.file());
         assertEquals("dwc.multiview-duel-pro_q3dm6-2026.11.03-1718.dm_71", multiview.downloadName());

@@ -290,8 +290,7 @@ th[aria-sort] {color:#E2A612;}
 .q3-winner {font-weight:bold;}
 .q3-winner::after {content:" \2605";color:#E2A612;}
 .q3-table .q3-players {white-space:normal;color:var(--dwc-text-muted);font-size:10px;min-width:180px;}
-.q3-table .q3-demos {white-space:normal;font-size:10px;min-width:130px;}
-.q3-demo {white-space:nowrap;}
+.q3-player {white-space:nowrap;}
 .clanwar-stats-summary {font-size:1.3em;font-weight:bold;cursor:pointer;margin:10px 0;}
 .clanwar-stats {margin-bottom:15px;}
 .clanwar-stats td,.clanwar-stats th {text-align:center;}
