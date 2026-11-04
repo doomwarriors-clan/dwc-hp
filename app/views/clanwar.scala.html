@@ -1,5 +1,9 @@
 @(clanwar: Clanwar, isAdmin: Boolean, previous: Clanwar, next: Clanwar, hasDemoStats: Boolean, messages: play.i18n.Messages)
 
+@dateWithTime(date: java.util.Date) = @{
+    if (date.format("HH:mm") == "00:00") date.format("dd.MM.yyyy") else date.format("dd.MM.yyyy HH:mm")
+}
+
 @main(messages.at("clanwar.title", clanwar.getEnemy()), messages, messages.at("clanwar.description", clanwar.getEnemy()), controllers.routes.HomeController.clanwar(clanwar.getId()).url) {
 <div class="mitteContent">
     @if(isAdmin) {
@@ -8,12 +12,12 @@
     <div class="clanwar-nav">
         <div>
             @if(previous != null) {
-                <a href="@controllers.routes.HomeController.clanwar(previous.getId())">&laquo; @previous.getDate().format("dd.MM.yyyy") vs. @previous.getEnemy()</a>
+                <a href="@controllers.routes.HomeController.clanwar(previous.getId())">&laquo; @dateWithTime(previous.getDate()) vs. @previous.getEnemy()</a>
             }
         </div>
         <div>
             @if(next != null) {
-                <a href="@controllers.routes.HomeController.clanwar(next.getId())">@next.getDate().format("dd.MM.yyyy") vs. @next.getEnemy() &raquo;</a>
+                <a href="@controllers.routes.HomeController.clanwar(next.getId())">@dateWithTime(next.getDate()) vs. @next.getEnemy() &raquo;</a>
             }
         </div>
     </div>
@@ -23,7 +27,7 @@
         <div class="clanwar-detail-title">
             <h1>@messages.at("clanwar.title", clanwar.getEnemy())</h1>
             <div class="clanwar-detail-meta">
-                @clanwar.getDate().format("dd.MM.yyyy") &middot; @clanwar.getLeague() &middot; @clanwar.getGame() (@clanwar.getGametype())
+                @dateWithTime(clanwar.getDate()) &middot; @clanwar.getLeague() &middot; @clanwar.getGame() (@clanwar.getGametype())
             </div>
         </div>
         <div class="clanwar-detail-result" data-result-color="@clanwar.getColor()">
