@@ -88,6 +88,7 @@ public final class Quake3Stats {
      * leftHuman and rightHuman tell a duel's players from bots; a team is neither.
      * players come sorted by score, each with the view the server recorded of them;
      * multiviewDemo holds all views in one file (null when there is none).
+     * A team game splits its players with teamPlayers(1) for red and teamPlayers(2) for blue.
      */
     public record MatchRow(LocalDateTime start, String gametype, String map, int durationSeconds, boolean teamGame,
                            String leftName, boolean leftHuman, int leftScore,
@@ -107,10 +108,23 @@ public final class Quake3Stats {
                     .sorted(Comparator.comparing(RowPlayer::bot))
                     .map(RowPlayer::demo).toList();
         }
+
+        /** The players of team 1 (red) or 2 (blue), sorted by score. */
+        public List<RowPlayer> teamPlayers(int team) {
+            return players.stream().filter(player -> player.team() == team).toList();
+        }
+
+        /** In a team game the players on neither team, so that nobody drops out of the list. */
+        public List<RowPlayer> teamlessPlayers() {
+            return players.stream().filter(player -> player.team() != 1 && player.team() != 2).toList();
+        }
     }
 
-    /** A player in the latest matches, with the demo from their view or null when there is none. */
-    public record RowPlayer(String name, int score, boolean bot, MatchDemo demo) {
+    /**
+     * A player in the latest matches, with the demo from their view or null when there is none.
+     * team is 1 for red and 2 for blue in a team game.
+     */
+    public record RowPlayer(String name, int score, boolean bot, int team, MatchDemo demo) {
         public String label() {
             return name + " (" + score + ")";
         }
@@ -391,7 +405,8 @@ public final class Quake3Stats {
         List<RowPlayer> players = new ArrayList<>();
         for (int i = 0; i < match.players().size(); i++) {
             Quake3GamesLog.MatchPlayer player = match.players().get(i);
-            players.add(new RowPlayer(player.name(), player.score(), player.bot(), demos.views().get(i)));
+            players.add(new RowPlayer(player.name(), player.score(), player.bot(), player.team(),
+                    demos.views().get(i)));
         }
         String leftName, rightName;
         boolean leftHuman = false, rightHuman = false;

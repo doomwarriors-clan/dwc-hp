@@ -99,6 +99,18 @@ public class Quake3ServerDemosTest {
     }
 
     @Test
+    public void splitsTheTeamsOfATeamGame() {
+        Quake3GamesLog.Match match = new Quake3GamesLog.Match("TDM", true, "pro-q3dm6", START, 60, 10, 7,
+                List.of(player("Sarge", true, 1, 6), player("dwc.n4cer", false, 2, 5),
+                        player("Doom", true, 1, 4), player("Major", true, 2, 2)));
+        Quake3Stats.MatchRow row = Quake3Stats.of(List.of(match), "", true, 20, Map.of(), List.of())
+                .recentMatches().get(0);
+        assertEquals(List.of("Sarge", "Doom"), row.teamPlayers(1).stream().map(Quake3Stats.RowPlayer::name).toList());
+        assertEquals(List.of("dwc.n4cer", "Major"), row.teamPlayers(2).stream().map(Quake3Stats.RowPlayer::name).toList());
+        assertTrue(row.teamlessPlayers().isEmpty());
+    }
+
+    @Test
     public void offersNoDemosForMatchesWithoutHumans() {
         Quake3GamesLog.Match match = new Quake3GamesLog.Match("Duel", false, "pro-q3dm6", START, 60, null, null,
                 List.of(player("dwcn4cer", true, 5), player("Sarge", true, 3)));
@@ -139,6 +151,10 @@ public class Quake3ServerDemosTest {
     }
 
     private static Quake3GamesLog.MatchPlayer player(String name, boolean bot, int score) {
-        return new Quake3GamesLog.MatchPlayer(name, bot, 0, score, score, 0, 0, 0, 0, 0, Map.of(), Map.of());
+        return player(name, bot, 0, score);
+    }
+
+    private static Quake3GamesLog.MatchPlayer player(String name, boolean bot, int team, int score) {
+        return new Quake3GamesLog.MatchPlayer(name, bot, team, score, score, 0, 0, 0, 0, 0, Map.of(), Map.of());
     }
 }
