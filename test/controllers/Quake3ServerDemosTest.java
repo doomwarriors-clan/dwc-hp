@@ -32,6 +32,8 @@ public class Quake3ServerDemosTest {
                 "duel/demos/mv-261103-171802-02-Watcher.dm_68", "duel/demos/mv-261103-171802.dm_71",
                 // an aborted match before it, never in the statistics
                 "duel/demos/mv-261103-171722-00-dwcn4cer.dm_68",
+                // a recording still running
+                "duel/demos/mv-261103-180000.dm_71.tmp",
                 "duel/demos/.mv-261103-171802.converted", "duel/demos/notes.txt",
                 "tdm/demos/mv-261103-171802-00-dwcn4cer.dm_68", "secret.dm_68"}) {
             Path path = logs.resolve(file);
@@ -41,18 +43,21 @@ public class Quake3ServerDemosTest {
     }
 
     @Test
-    public void readsTheConvertedDemosOfEveryServer() {
+    public void readsTheFinishedDemosOfEveryServer() {
         List<Quake3ServerDemos.Demo> demos = Quake3ServerDemos.read(logs);
-        assertEquals(5, demos.size());
+        assertEquals(6, demos.size());
         assertTrue(demos.contains(new Quake3ServerDemos.Demo("duel", "mv-261103-171802-01-Sarge.dm_68",
                 LocalDateTime.of(2026, 11, 3, 17, 18, 2), 1, "Sarge")));
+        assertTrue(demos.contains(new Quake3ServerDemos.Demo("duel", "mv-261103-171802.dm_71",
+                LocalDateTime.of(2026, 11, 3, 17, 18, 2), Quake3ServerDemos.Demo.MULTIVIEW, "")));
     }
 
     @Test
     public void assignsTheRecordingThatStartedWithTheMatch() {
         List<Quake3ServerDemos.Demo> demos = Quake3ServerDemos.read(logs);
         List<Quake3ServerDemos.Demo> match = Quake3ServerDemos.forMatch(demos, "Duel", START);
-        assertEquals(List.of("mv-261103-171802-00-dwcn4cer.dm_68", "mv-261103-171802-01-Sarge.dm_68",
+        assertEquals(List.of("mv-261103-171802.dm_71",
+                "mv-261103-171802-00-dwcn4cer.dm_68", "mv-261103-171802-01-Sarge.dm_68",
                 "mv-261103-171802-02-Watcher.dm_68"), match.stream().map(Quake3ServerDemos.Demo::file).toList());
         // another server's recording, or one that started too far away, is not this match's
         assertEquals(1, Quake3ServerDemos.forMatch(demos, "TDM", START).size());
@@ -62,22 +67,29 @@ public class Quake3ServerDemosTest {
     }
 
     @Test
-    public void offersOneDemoPerHumanPlayerUnderTheirStatisticsName() {
+    public void offersEveryPlayersViewAndTheMultiviewDemo() {
+        // the bot won, but humans come first
         Quake3GamesLog.Match match = new Quake3GamesLog.Match("Duel", false, "pro-q3dm6", START, 60, null, null,
-                List.of(player("dwc.n4cer", false, 5), player("Sarge", true, 3)));
+                List.of(player("Sarge", true, 5), player("dwc.n4cer", false, 3)));
         Map<String, Quake3Stats.Identity> aliases = Quake3Stats.aliases(
                 List.of(Quake3Stats.Identity.member("n4cer", 7L, List.of())));
 
         Quake3Stats stats = Quake3Stats.of(List.of(match), "", true, 20, aliases, Quake3ServerDemos.read(logs));
 
-        // Sarge is a bot, Watcher only watched: neither gets a demo
+        // Watcher only watched and gets no demo
         List<Quake3Stats.MatchDemo> demos = stats.recentMatches().get(0).demos();
-        assertEquals(1, demos.size());
+        assertEquals(List.of("dwc.n4cer", "Sarge"), demos.stream().map(Quake3Stats.MatchDemo::player).toList());
+        assertEquals(List.of(false, true), demos.stream().map(Quake3Stats.MatchDemo::bot).toList());
         assertEquals("dwc.n4cer", demos.get(0).player());
         assertEquals("mv-261103-171802-00-dwcn4cer.dm_68", demos.get(0).file());
         assertEquals("dwc.n4cer-duel-pro_q3dm6-2026.11.03-1718.dm_68", demos.get(0).downloadName());
         assertEquals("/quake3/demo/duel/mv-261103-171802-00-dwcn4cer.dm_68?name=dwc.n4cer-duel-pro_q3dm6-2026.11.03-1718.dm_68",
                 demos.get(0).url());
+        assertEquals("dwc.Sarge-duel-pro_q3dm6-2026.11.03-1718.dm_68", demos.get(1).downloadName());
+
+        Quake3Stats.MatchDemo multiview = stats.recentMatches().get(0).multiviewDemo();
+        assertEquals("mv-261103-171802.dm_71", multiview.file());
+        assertEquals("dwc.multiview-duel-pro_q3dm6-2026.11.03-1718.dm_71", multiview.downloadName());
     }
 
     @Test
@@ -86,13 +98,17 @@ public class Quake3ServerDemosTest {
                 List.of(player("dwcn4cer", true, 5), player("Sarge", true, 3)));
         Quake3Stats stats = Quake3Stats.of(List.of(match), "", true, 20, Map.of(), Quake3ServerDemos.read(logs));
         assertTrue(stats.recentMatches().get(0).demos().isEmpty());
+        assertNull(stats.recentMatches().get(0).multiviewDemo());
     }
 
     @Test
-    public void servesOnlyConvertedDemosFromTheDemoFolders() {
+    public void servesOnlyFinishedDemosFromTheDemoFolders() {
         assertEquals(logs.resolve("duel/demos/mv-261103-171802-01-Sarge.dm_68"),
                 Quake3ServerDemos.path(logs, "duel", "mv-261103-171802-01-Sarge.dm_68"));
-        assertNull(Quake3ServerDemos.path(logs, "duel", "mv-261103-171802.dm_71"));
+        assertEquals(logs.resolve("duel/demos/mv-261103-171802.dm_71"),
+                Quake3ServerDemos.path(logs, "duel", "mv-261103-171802.dm_71"));
+        assertNull(Quake3ServerDemos.path(logs, "duel", "mv-261103-180000.dm_71.tmp"));
+        assertNull(Quake3ServerDemos.path(logs, "duel", ".mv-261103-171802.converted"));
         assertNull(Quake3ServerDemos.path(logs, "duel", "notes.txt"));
         assertNull(Quake3ServerDemos.path(logs, "duel", "mv-261103-171802-09-Missing.dm_68"));
         assertNull(Quake3ServerDemos.path(logs, "duel", "../../secret.dm_68"));
@@ -103,6 +119,7 @@ public class Quake3ServerDemosTest {
     @Test
     public void acceptsOnlyPlainDownloadNames() {
         assertTrue(Quake3ServerDemos.isDownloadName("dwc.n4cer-duel-pro_q3dm6-2026.11.03-1718.dm_68"));
+        assertTrue(Quake3ServerDemos.isDownloadName("dwc.multiview-duel-pro_q3dm6-2026.11.03-1718.dm_71"));
         assertFalse(Quake3ServerDemos.isDownloadName(""));
         assertFalse(Quake3ServerDemos.isDownloadName("evil\".dm_68"));
         assertFalse(Quake3ServerDemos.isDownloadName("a\r\nSet-Cookie: x.dm_68"));

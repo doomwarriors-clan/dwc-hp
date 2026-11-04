@@ -127,7 +127,7 @@
                                 <span class="@if(row.teamGame()) {q3-team-blue} @if(row.rightHuman()) {q3-human} @if(row.winner() == 2) {q3-winner}">@row.rightName()</span>
                             </td>
                             <td class="q3-players">@row.players().asScala.mkString(", ")</td>
-                            <td class="q3-demos">@for((demo, index) <- row.demos().asScala.zipWithIndex) {@if(index > 0) {, }<a href="@demo.url()" download title="@messages.at("quake3stats.demoTitle", demo.player())">@demo.player()</a>}</td>
+                            <td class="q3-demos">@for((demo, index) <- row.demos().asScala.zipWithIndex) {@if(index > 0) {, }<a href="@demo.url()" download title="@messages.at("quake3stats.demoTitle", demo.player())">@demo.player()</a>@if(demo.bot()) { <span class="q3-bot">@messages.at("quake3stats.bot")</span>}}@if(row.multiviewDemo() != null) {@if(!row.demos().isEmpty()) {, }<a href="@row.multiviewDemo().url()" download title="@messages.at("quake3stats.multiviewTitle")">@messages.at("quake3stats.multiview")</a>}</td>
                         </tr>
                     }
                 </tbody>
