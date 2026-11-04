@@ -107,8 +107,11 @@ public class ScoreDemo extends Model {
             + "." + extension;
   }
 
-  /** Quake 3 colour codes dropped, and nothing that could clash with the separators or a file system. */
-  private static String part(String value) {
+  /**
+   * Quake 3 colour codes dropped, and nothing that could clash with the separators or a file system.
+   * Also builds the download names of the servers' own demos (controllers.Quake3ServerDemos).
+   */
+  public static String part(String value) {
     if (value == null) return "unknown";
     String plain = UNSAFE.matcher(COLOR_CODE.matcher(value).replaceAll("")).replaceAll("_");
     plain = plain.replaceAll("^[_.]+|[_.]+$", "");

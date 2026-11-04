@@ -89,13 +89,20 @@ public final class Quake3Stats {
     public record MatchRow(LocalDateTime start, String gametype, String map, int durationSeconds, boolean teamGame,
                            String leftName, boolean leftHuman, int leftScore,
                            String rightName, boolean rightHuman, int rightScore, int winner,
-                           List<String> players) {
+                           List<String> players, List<MatchDemo> demos) {
         public String duration() {
             return durationSeconds / 60 + ":" + String.format("%02d", durationSeconds % 60);
         }
 
         public String result() {
             return leftName + " " + leftScore + " : " + rightScore + " " + rightName;
+        }
+    }
+
+    /** A human player's view of the match, recorded by the server ({@link Quake3ServerDemos}). */
+    public record MatchDemo(String player, String mode, String file, String downloadName) {
+        public String url() {
+            return routes.HomeController.quake3Demo(mode, file, downloadName).url();
         }
     }
 
@@ -226,6 +233,8 @@ public final class Quake3Stats {
             entry.put("winner", match.winner() == 1 ? match.leftName() : match.winner() == 2 ? match.rightName() : null);
             ArrayNode names = entry.putArray("players");
             match.players().forEach(names::add);
+            ArrayNode demos = entry.putArray("demos");
+            match.demos().forEach(demo -> demos.addObject().put("player", demo.player()).put("url", demo.url()));
         }
         return node;
     }
@@ -249,13 +258,19 @@ public final class Quake3Stats {
      */
     static Quake3Stats of(List<Quake3GamesLog.Match> allMatches, String mode, boolean includeBots, int recentLimit,
                           Map<String, Identity> aliases) {
-        List<Quake3GamesLog.Match> matches = allMatches.stream()
+        return of(allMatches, mode, includeBots, recentLimit, aliases, List.of());
+    }
+
+    /** serverDemos are the demos the servers recorded, offered with the latest matches they belong to. */
+    static Quake3Stats of(List<Quake3GamesLog.Match> allMatches, String mode, boolean includeBots, int recentLimit,
+                          Map<String, Identity> aliases, List<Quake3ServerDemos.Demo> serverDemos) {
+        List<Quake3GamesLog.Match> played = allMatches.stream()
                 .filter(match -> !MODES.contains(mode) || match.gametype().equalsIgnoreCase(mode))
                 .filter(match -> includeBots || !match.hasBots())
-                .map(match -> rename(match, aliases))
                 .sorted(Comparator.comparing(Quake3GamesLog.Match::start,
                         Comparator.nullsFirst(Comparator.naturalOrder())).reversed())
                 .toList();
+        List<Quake3GamesLog.Match> matches = played.stream().map(match -> rename(match, aliases)).toList();
 
         Map<String, Totals> totals = new LinkedHashMap<>();
         for (Quake3GamesLog.Match match : matches) {
@@ -270,8 +285,37 @@ public final class Quake3Stats {
                 .sorted(Comparator.comparingInt(Player::wins).reversed()
                         .thenComparing(Comparator.comparingInt(Player::kills).reversed()))
                 .toList();
-        List<MatchRow> recent = matches.stream().limit(recentLimit).map(Quake3Stats::row).toList();
+        List<MatchRow> recent = new ArrayList<>();
+        for (int i = 0; i < Math.min(recentLimit, matches.size()); i++) {
+            // the demo files carry the names from the log, so look them up before the renaming
+            recent.add(row(matches.get(i), demos(played.get(i), serverDemos, aliases)));
+        }
         return new Quake3Stats(leaderboard, recent, matches.size());
+    }
+
+    /**
+     * The server's demos of a match with at least one human: one per human player,
+     * named like the statistics name them. Bots' and spectators' views are left out.
+     */
+    private static List<MatchDemo> demos(Quake3GamesLog.Match match, List<Quake3ServerDemos.Demo> serverDemos,
+                                         Map<String, Identity> aliases) {
+        if (serverDemos.isEmpty() || match.players().stream().allMatch(Quake3GamesLog.MatchPlayer::bot)) {
+            return List.of();
+        }
+        List<MatchDemo> demos = new ArrayList<>();
+        for (Quake3ServerDemos.Demo demo : Quake3ServerDemos.forMatch(serverDemos, match.gametype(), match.start())) {
+            match.players().stream()
+                    .filter(player -> !player.bot())
+                    .filter(player -> Quake3ServerDemos.fileNamePart(player.name()).equalsIgnoreCase(demo.player()))
+                    .findFirst()
+                    .ifPresent(player -> {
+                        Identity identity = aliases.get(player.name().toLowerCase());
+                        String name = identity == null ? player.name() : identity.name();
+                        demos.add(new MatchDemo(name, demo.mode(), demo.file(),
+                                Quake3ServerDemos.downloadName(name, match.gametype(), match.map(), match.start())));
+                    });
+        }
+        return demos;
     }
 
     /**
@@ -309,7 +353,7 @@ public final class Quake3Stats {
         return new Quake3Stats(List.of(), List.of(), 0);
     }
 
-    private static MatchRow row(Quake3GamesLog.Match match) {
+    private static MatchRow row(Quake3GamesLog.Match match, List<MatchDemo> demos) {
         List<String> players = match.players().stream()
                 .map(player -> player.name() + " (" + player.score() + ")").toList();
         String leftName, rightName;
@@ -331,7 +375,7 @@ public final class Quake3Stats {
         }
         int winner = leftScore > rightScore ? 1 : rightScore > leftScore ? 2 : 0;
         return new MatchRow(match.start(), match.gametype(), match.map(), match.durationSeconds(), match.teamGame(),
-                leftName, leftHuman, leftScore, rightName, rightHuman, rightScore, winner, players);
+                leftName, leftHuman, leftScore, rightName, rightHuman, rightScore, winner, players, demos);
     }
 
     private static final class Totals {

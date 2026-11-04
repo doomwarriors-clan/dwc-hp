@@ -252,3 +252,6 @@ quake3stats.result = Result
 quake3stats.players = Players
 quake3stats.showBots = Show matches with bots
 quake3stats.hideBots = Hide matches with bots
+quake3stats.demos = Demos
+quake3stats.demosTitle = Recorded by the server, one demo per player from their view; plays in any Quake 3 client, available for 30 days
+quake3stats.demoTitle = Download the demo from {0}'s view
