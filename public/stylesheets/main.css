@@ -291,6 +291,8 @@ th[aria-sort] {color:#E2A612;}
 .q3-winner::after {content:" \2605";color:#E2A612;}
 .q3-table .q3-players {white-space:normal;color:var(--dwc-text-muted);font-size:10px;min-width:180px;}
 .q3-player {white-space:nowrap;}
+.q3-team-line {display:block;}
+.q3-team-label {font-weight:bold;}
 .clanwar-stats-summary {font-size:1.3em;font-weight:bold;cursor:pointer;margin:10px 0;}
 .clanwar-stats {margin-bottom:15px;}
 .clanwar-stats td,.clanwar-stats th {text-align:center;}

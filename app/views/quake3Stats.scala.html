@@ -15,6 +15,9 @@
     <th scope="col" class="@if(kind == "number") {num}" data-sort="@kind" @if(title.nonEmpty) { title="@title" } @if(sorted.nonEmpty) { aria-sort="@sorted" }><button type="button" class="q3-sort">@label</button></th>
 }
 
+@* the column wraps between players, never within one *@
+@playerList(players: java.util.List[controllers.Quake3Stats.RowPlayer]) = {@for((player, index) <- players.asScala.zipWithIndex) {@if(index > 0) {, }<span class="q3-player">@if(player.demo() != null) {<a href="@player.demo().url()" download title="@messages.at("quake3stats.demoTitle", player.name())">@player.name()</a>} else {@player.name()} (@player.score())@if(player.bot()) { <span class="q3-bot">@messages.at("quake3stats.bot")</span>}</span>}}
+
 @main(messages.at("quake3stats.title"), messages, messages.at("quake3stats.description"), controllers.routes.HomeController.quake3Stats().url,
     alternateJson = controllers.routes.HomeController.quake3StatsJson(mode, bots).url) {
 <div class="mitteContent q3-stats">
@@ -125,8 +128,8 @@
                                 <span class="q3-score">@row.leftScore() : @row.rightScore()</span>
                                 <span class="@if(row.teamGame()) {q3-team-blue} @if(row.rightHuman()) {q3-human} @if(row.winner() == 2) {q3-winner}">@row.rightName()</span>
                             </td>
-                            @* a player's name links to the demo from their view; the column wraps between players, never within one *@
-                            <td class="q3-players">@for((player, index) <- row.players().asScala.zipWithIndex) {@if(index > 0) {, }<span class="q3-player">@if(player.demo() != null) {<a href="@player.demo().url()" download title="@messages.at("quake3stats.demoTitle", player.name())">@player.name()</a>} else {@player.name()} (@player.score())@if(player.bot()) { <span class="q3-bot">@messages.at("quake3stats.bot")</span>}</span>}@if(row.multiviewDemo() != null) { · <span class="q3-player"><a href="@row.multiviewDemo().url()" download title="@messages.at("quake3stats.multiviewTitle")">@messages.at("quake3stats.multiview")</a></span>}</td>
+                            @* a player's name links to the demo from their view; a team game lists red and blue on lines of their own *@
+                            <td class="q3-players">@if(row.teamGame()) {<span class="q3-team-line"><span class="q3-team-label q3-team-red">@row.leftName():</span> @playerList(row.teamPlayers(1))</span><span class="q3-team-line"><span class="q3-team-label q3-team-blue">@row.rightName():</span> @playerList(row.teamPlayers(2))</span>@if(!row.teamlessPlayers().isEmpty()) {<span class="q3-team-line">@playerList(row.teamlessPlayers())</span>}} else {@playerList(row.players())}@if(row.multiviewDemo() != null) {@if(!row.teamGame()) { · }<span class="q3-player @if(row.teamGame()) {q3-team-line}"><a href="@row.multiviewDemo().url()" download title="@messages.at("quake3stats.multiviewTitle")">@messages.at("quake3stats.multiview")</a></span>}</td>
                         </tr>
                     }
                 </tbody>
