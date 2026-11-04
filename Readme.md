@@ -424,6 +424,34 @@ needs no extra step. The retail id paks (`baseq3/pak0.pk3` to `pak8.pk3`) are
 copyrighted and never handed out. The regex location in `deploy/nginx.conf`
 passes these requests through unbuffered, like the video and download bytes.
 
+#### Demos recorded by the game servers
+
+The game servers record every match themselves, from each player's view
+(q3server project, "Serverseitige Demo-Aufnahme"). Its `convert-demos.sh`
+splits each recording into one standard demo per player, playable in any
+Quake 3 client, and deletes them after 30 days. They lie next to the
+`games.log` they belong to, so `DWC_QUAKE3_LOG_FOLDER` is all this needs:
+
+```text
+<DWC_QUAKE3_LOG_FOLDER>/duel/demos/mv-261103-171802-00-dwcn4cer.dm_68
+                                    recording start, client number, player
+```
+
+Under "Latest matches" on `/quake3/stats` (and in `stats.json`) a match gets a
+download link per human player when the recording on its server started
+within 20 seconds of the match start in the `games.log`; both times come from
+the same server clock. Bots' and spectators' views, matches without humans and
+aborted matches (which never reach the statistics) get none. Demos appear with
+the next recalculation of the page, at most a few minutes after the match, and
+disappear once the q3server project has deleted them.
+
+`/quake3/demo/<mode>/<file>` serves only such `.dm_68` files from
+`<mode>/demos`, never the multiview `.dm_71` or anything else in the log
+folder. Visitors save them as
+`dwc.<player>-<mode>-<map>-<yyyy.MM.dd>-<HHmm>.dm_68`, named like the
+clan-war demos. The regex location in `deploy/nginx.conf` passes these
+requests through unbuffered.
+
 #### Installing files uploaded over SFTP
 
 New pk3 files for the game servers, new files for the download section and

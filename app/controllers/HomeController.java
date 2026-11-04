@@ -336,7 +336,8 @@ public class HomeController extends Controller {
     /** Empty when no log folder is configured or it cannot be read. */
     private Optional<Quake3Stats> loadQuake3Stats(String filter, boolean bots) {
       return Quake3GamesLog.readConfigured(configuration.underlying()).map(matches ->
-              Quake3Stats.of(matches, filter, bots, 20, Quake3Stats.aliases(quake3Identities())));
+              Quake3Stats.of(matches, filter, bots, 20, Quake3Stats.aliases(quake3Identities()),
+                      Quake3ServerDemos.readConfigured(configuration.underlying())));
     }
 
     /** The players maintained under Administration > Quake 3 players. */
@@ -745,6 +746,22 @@ public class HomeController extends Controller {
       Path path = quake3Pk3Path(Path.of(folder), game, file);
       if (path == null) return notFound("file not found");
       return RangeResults.ofPath(request, path);
+    }
+
+    /**
+     * A demo the Quake 3 servers recorded themselves (see {@link Quake3ServerDemos}),
+     * read from the servers' log folder and saved under the name the statistics page
+     * gives it.
+     */
+    public Result quake3Demo(Http.Request request, String mode, String file, String name) {
+      String folder = configuration.underlying().hasPath("quake3.logs.folder")
+              ? configuration.underlying().getString("quake3.logs.folder") : "";
+      if (folder.isBlank()) return notFound("file not found");
+      Path path = Quake3ServerDemos.path(Path.of(folder), mode, file);
+      if (path == null) return notFound("file not found");
+      String saveAs = Quake3ServerDemos.isDownloadName(name) ? name : file;
+      return RangeResults.ofPath(request, path)
+              .withHeader(Http.HeaderNames.CONTENT_DISPOSITION, "attachment; filename=\"" + saveAs + "\"");
     }
 
     /**

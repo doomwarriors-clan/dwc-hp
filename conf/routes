@@ -15,6 +15,7 @@ GET     /quake3-status.json          controllers.HomeController.quake3Status
 GET     /quake3/stats                controllers.HomeController.quake3Stats(request: Request, mode: String ?= "", bots: Boolean ?= false)
 GET     /quake3/stats.json           controllers.HomeController.quake3StatsJson(mode: String ?= "", bots: Boolean ?= false)
 GET     /quake3/pk3/:game/:file      controllers.HomeController.quake3Pk3(request: Request, game: String, file: String)
+GET     /quake3/demo/:mode/:file     controllers.HomeController.quake3Demo(request: Request, mode: String, file: String, name: String ?= "")
 GET     /clanwar/:id                controllers.HomeController.clanwar(request: Request, id: Long)
 GET     /clanwar/:id/stats          controllers.HomeController.clanwarStats(request: Request, id: Long)
 GET     /clanwar/demo/:id           controllers.HomeController.clanwarDemo(request: Request, id: Long)
