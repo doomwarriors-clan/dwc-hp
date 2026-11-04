@@ -27,9 +27,12 @@ import models.ScoreDemo;
  * The demos the Quake 3 servers record themselves. A server records each match
  * from every player's view into one multiview demo; the q3server project's
  * convert-demos.sh splits it into one standard demo per player and deletes
- * them after 30 days. They lie next to the games.log of their server:
+ * both after 30 days. They lie next to the games.log of their server:
  *
- * <pre>logs/&lt;mode&gt;/demos/mv-&lt;yyMMdd&gt;-&lt;HHmmss&gt;-&lt;client&gt;-&lt;name&gt;.dm_68</pre>
+ * <pre>
+ * logs/&lt;mode&gt;/demos/mv-&lt;yyMMdd&gt;-&lt;HHmmss&gt;.dm_71                    all views (multiview)
+ * logs/&lt;mode&gt;/demos/mv-&lt;yyMMdd&gt;-&lt;HHmmss&gt;-&lt;client&gt;-&lt;name&gt;.dm_68  one player's view
+ * </pre>
  *
  * The time is when the recording started, taken from the same server clock as
  * the games.log, so a demo belongs to the match of its server that started then.
@@ -37,18 +40,26 @@ import models.ScoreDemo;
 final class Quake3ServerDemos {
     /** The name mvconvert writes; the player name holds only these characters. */
     private static final Pattern FILE = Pattern.compile("mv-(\\d{6}-\\d{6})-(\\d{2})-([A-Za-z0-9_-]+)\\.dm_68");
+    /** The name the server records under; only a Quake3e client with multiview plays it. */
+    private static final Pattern MULTIVIEW_FILE = Pattern.compile("mv-(\\d{6}-\\d{6})\\.dm_71");
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyMMdd-HHmmss");
     private static final Pattern COLOR = Pattern.compile("\\^[^^]");
     private static final Pattern NOT_IN_FILE_NAME = Pattern.compile("[^A-Za-z0-9_-]");
     private static final Pattern CLAN_TAG = Pattern.compile("^dwc\\.", Pattern.CASE_INSENSITIVE);
-    private static final Pattern DOWNLOAD_NAME = Pattern.compile("[A-Za-z0-9_.-]{1,200}\\.dm_68");
+    private static final Pattern DOWNLOAD_NAME = Pattern.compile("[A-Za-z0-9_.-]{1,200}\\.dm_(68|71)");
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyy.MM.dd");
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HHmm");
     /** The recording starts with the match; allow for the second between log line and file name. */
     static final Duration MAX_START_OFFSET = Duration.ofSeconds(20);
 
-    /** One player's view of a recorded match. */
-    record Demo(String mode, String file, LocalDateTime start, int client, String player) { }
+    /** One player's view of a recorded match, or with client -1 and no player the multiview demo of all views. */
+    record Demo(String mode, String file, LocalDateTime start, int client, String player) {
+        static final int MULTIVIEW = -1;
+
+        boolean multiview() {
+            return client == MULTIVIEW;
+        }
+    }
 
     private Quake3ServerDemos() { }
 
@@ -77,19 +88,27 @@ final class Quake3ServerDemos {
     }
 
     static Optional<Demo> parse(String mode, String file) {
-        Matcher matcher = FILE.matcher(file);
-        if (!matcher.matches()) return Optional.empty();
+        Matcher player = FILE.matcher(file);
+        Matcher multiview = MULTIVIEW_FILE.matcher(file);
         try {
-            LocalDateTime start = LocalDateTime.parse(matcher.group(1), STAMP);
-            return Optional.of(new Demo(mode, file, start, Integer.parseInt(matcher.group(2)), matcher.group(3)));
+            if (player.matches()) {
+                LocalDateTime start = LocalDateTime.parse(player.group(1), STAMP);
+                return Optional.of(new Demo(mode, file, start, Integer.parseInt(player.group(2)), player.group(3)));
+            }
+            if (multiview.matches()) {
+                LocalDateTime start = LocalDateTime.parse(multiview.group(1), STAMP);
+                return Optional.of(new Demo(mode, file, start, Demo.MULTIVIEW, ""));
+            }
         } catch (DateTimeParseException e) {
-            return Optional.empty();
+            // digits, but no date: not one of the server's demos
         }
+        return Optional.empty();
     }
 
     /**
      * The demos of the recording on the server of that mode that started closest
-     * to the match start, at most {@link #MAX_START_OFFSET} apart; ordered by client.
+     * to the match start, at most {@link #MAX_START_OFFSET} apart; ordered by client,
+     * so the multiview demo comes first.
      */
     static List<Demo> forMatch(List<Demo> demos, String mode, LocalDateTime start) {
         if (start == null) return List.of();
@@ -110,12 +129,13 @@ final class Quake3ServerDemos {
 
     /**
      * The name a visitor saves the demo under, like the clan war demos
-     * (models.ScoreDemo): dwc.&lt;player&gt;-&lt;mode&gt;-&lt;map&gt;-&lt;yyyy.MM.dd&gt;-&lt;HHmm&gt;.dm_68
+     * (models.ScoreDemo): dwc.&lt;player&gt;-&lt;mode&gt;-&lt;map&gt;-&lt;yyyy.MM.dd&gt;-&lt;HHmm&gt;.dm_68,
+     * and dwc.multiview-&lt;mode&gt;-…-&lt;HHmm&gt;.dm_71 for the multiview demo.
      */
-    static String downloadName(String player, String gametype, String map, LocalDateTime start) {
-        return "dwc." + ScoreDemo.part(CLAN_TAG.matcher(player.trim()).replaceFirst(""))
+    static String downloadName(String player, String gametype, String map, LocalDateTime start, boolean multiview) {
+        return "dwc." + ScoreDemo.part(multiview ? "multiview" : CLAN_TAG.matcher(player.trim()).replaceFirst(""))
                 + "-" + ScoreDemo.part(gametype.toLowerCase(Locale.ROOT)) + "-" + ScoreDemo.part(map)
-                + "-" + DAY.format(start) + "-" + TIME.format(start) + ".dm_68";
+                + "-" + DAY.format(start) + "-" + TIME.format(start) + (multiview ? ".dm_71" : ".dm_68");
     }
 
     /** Whether a name could have come from {@link #downloadName}; it ends up in a response header. */
@@ -125,7 +145,8 @@ final class Quake3ServerDemos {
 
     /** Resolves a demo inside a server's demos folder, rejecting anything else. Mirrors HomeController.quake3Pk3Path. */
     static Path path(Path logsFolder, String mode, String file) {
-        if (!Quake3Stats.MODES.contains(mode) || !FILE.matcher(file).matches()) return null;
+        if (!Quake3Stats.MODES.contains(mode)) return null;
+        if (!FILE.matcher(file).matches() && !MULTIVIEW_FILE.matcher(file).matches()) return null;
         Path folder = logsFolder.resolve(mode).resolve("demos");
         Path resolved = folder.resolve(file).normalize();
         if (!resolved.startsWith(folder) || !Files.isRegularFile(resolved, LinkOption.NOFOLLOW_LINKS)) return null;

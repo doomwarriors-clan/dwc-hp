@@ -85,11 +85,13 @@ public final class Quake3Stats {
      * One line in the latest matches: a duel shows the two players, a team game the two
      * teams. winner is 1 for the left side, 2 for the right side and 0 for a draw.
      * leftHuman and rightHuman tell a duel's players from bots; a team is neither.
+     * demos are the players' views the server recorded, multiviewDemo all of them in
+     * one file (null when there is none).
      */
     public record MatchRow(LocalDateTime start, String gametype, String map, int durationSeconds, boolean teamGame,
                            String leftName, boolean leftHuman, int leftScore,
                            String rightName, boolean rightHuman, int rightScore, int winner,
-                           List<String> players, List<MatchDemo> demos) {
+                           List<String> players, List<MatchDemo> demos, MatchDemo multiviewDemo) {
         public String duration() {
             return durationSeconds / 60 + ":" + String.format("%02d", durationSeconds % 60);
         }
@@ -99,8 +101,11 @@ public final class Quake3Stats {
         }
     }
 
-    /** A human player's view of the match, recorded by the server ({@link Quake3ServerDemos}). */
-    public record MatchDemo(String player, String mode, String file, String downloadName) {
+    /**
+     * A demo of the match recorded by the server ({@link Quake3ServerDemos}): one
+     * player's view, or with player null the multiview demo of all views.
+     */
+    public record MatchDemo(String player, boolean bot, String mode, String file, String downloadName) {
         public String url() {
             return routes.HomeController.quake3Demo(mode, file, downloadName).url();
         }
@@ -234,7 +239,9 @@ public final class Quake3Stats {
             ArrayNode names = entry.putArray("players");
             match.players().forEach(names::add);
             ArrayNode demos = entry.putArray("demos");
-            match.demos().forEach(demo -> demos.addObject().put("player", demo.player()).put("url", demo.url()));
+            match.demos().forEach(demo -> demos.addObject()
+                    .put("player", demo.player()).put("bot", demo.bot()).put("url", demo.url()));
+            entry.put("multiviewDemo", match.multiviewDemo() == null ? null : match.multiviewDemo().url());
         }
         return node;
     }
@@ -294,8 +301,9 @@ public final class Quake3Stats {
     }
 
     /**
-     * The server's demos of a match with at least one human: one per human player,
-     * named like the statistics name them. Bots' and spectators' views are left out.
+     * The server's demos of a match with at least one human: the multiview demo
+     * first, then one per player, humans before bots, named like the statistics
+     * name them. Spectators' views are left out.
      */
     private static List<MatchDemo> demos(Quake3GamesLog.Match match, List<Quake3ServerDemos.Demo> serverDemos,
                                          Map<String, Identity> aliases) {
@@ -303,18 +311,24 @@ public final class Quake3Stats {
             return List.of();
         }
         List<MatchDemo> demos = new ArrayList<>();
+        List<MatchDemo> botDemos = new ArrayList<>();
         for (Quake3ServerDemos.Demo demo : Quake3ServerDemos.forMatch(serverDemos, match.gametype(), match.start())) {
+            if (demo.multiview()) {
+                demos.add(new MatchDemo(null, false, demo.mode(), demo.file(),
+                        Quake3ServerDemos.downloadName("", match.gametype(), match.map(), match.start(), true)));
+                continue;
+            }
             match.players().stream()
-                    .filter(player -> !player.bot())
                     .filter(player -> Quake3ServerDemos.fileNamePart(player.name()).equalsIgnoreCase(demo.player()))
                     .findFirst()
                     .ifPresent(player -> {
-                        Identity identity = aliases.get(player.name().toLowerCase());
+                        Identity identity = player.bot() ? null : aliases.get(player.name().toLowerCase());
                         String name = identity == null ? player.name() : identity.name();
-                        demos.add(new MatchDemo(name, demo.mode(), demo.file(),
-                                Quake3ServerDemos.downloadName(name, match.gametype(), match.map(), match.start())));
+                        (player.bot() ? botDemos : demos).add(new MatchDemo(name, player.bot(), demo.mode(), demo.file(),
+                                Quake3ServerDemos.downloadName(name, match.gametype(), match.map(), match.start(), false)));
                     });
         }
+        demos.addAll(botDemos);
         return demos;
     }
 
@@ -374,8 +388,10 @@ public final class Quake3Stats {
             rightScore = match.players().get(1).score();
         }
         int winner = leftScore > rightScore ? 1 : rightScore > leftScore ? 2 : 0;
+        MatchDemo multiview = demos.stream().filter(demo -> demo.player() == null).findFirst().orElse(null);
+        List<MatchDemo> views = demos.stream().filter(demo -> demo.player() != null).toList();
         return new MatchRow(match.start(), match.gametype(), match.map(), match.durationSeconds(), match.teamGame(),
-                leftName, leftHuman, leftScore, rightName, rightHuman, rightScore, winner, players, demos);
+                leftName, leftHuman, leftScore, rightName, rightHuman, rightScore, winner, players, views, multiview);
     }
 
     private static final class Totals {
