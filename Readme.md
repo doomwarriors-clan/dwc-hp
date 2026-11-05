@@ -445,7 +445,7 @@ On the page each player's name links to the demo from their view, in team
 games listed by team, Red and Blue on lines of their own (in
 `stats.json` the `demos` list has humans first, bots marked as such), plus
 "Multiview" for the whole recording, which only a Quake3e client with
-multiview (n4cer/Quake3e) plays. Spectators' views, matches without humans
+multiview (doomwarriors-clan/Quake3e) plays. Spectators' views, matches without humans
 and aborted matches (which never reach the statistics) get none. Demos appear
 with the next recalculation of the page, at most a few minutes after the
 match, and disappear once the q3server project has deleted them.
