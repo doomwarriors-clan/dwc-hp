@@ -24,3 +24,5 @@ libexec
 *.dump
 dwc_deploy*
 __pycache__
+# Local SSH deploy key, never commit.
+dwc_deploy_key*
