@@ -255,4 +255,4 @@ quake3stats.hideBots = Hide matches with bots
 quake3stats.demosTitle = Linked names download the demo from that player''s view, recorded by the server; plays in any Quake 3 client, available for 30 days
 quake3stats.demoTitle = Download the demo from {0}''s view
 quake3stats.multiview = Multiview
-quake3stats.multiviewTitle = All views in one file. Needs a Quake3e client with multiview (github.com/n4cer/Quake3e), where mvfollow <number> switches the view.
+quake3stats.multiviewTitle = All views in one file. Needs a Quake3e client with multiview (github.com/doomwarriors-clan/Quake3e), where mvfollow <number> switches the view.
