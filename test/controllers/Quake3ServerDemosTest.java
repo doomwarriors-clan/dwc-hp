@@ -111,6 +111,31 @@ public class Quake3ServerDemosTest {
     }
 
     @Test
+    public void findsViewsWhoseNameMvconvertCutShort() throws IOException {
+        // 5 Nov 2026: names with many colour codes lost their last letter in the file name
+        for (String file : new String[] {
+                "tdm/demos/mv-261105-210059-00-PILLEpall.dm_68", "tdm/demos/mv-261105-210059-03-DALLIdall.dm_68",
+                "tdm/demos/mv-261105-210059-04-DYGDieDrossel.dm_68", "tdm/demos/mv-261105-210059-09-dwcmotter.dm_68",
+                // two players start with "Bo": nobody gets it
+                "tdm/demos/mv-261105-210059-05-Bo.dm_68"}) {
+            Files.writeString(logs.resolve(file), "x");
+        }
+        Quake3GamesLog.Match match = new Quake3GamesLog.Match("TDM", true, "q3dm7", LocalDateTime.of(2026, 11, 5, 21, 0, 57),
+                1285, 230, 163, List.of(player("dwc.motter", false, 1, 72), player("PILLEpalle", true, 1, 67),
+                        player("[DYG]DieDrossel", true, 2, 42), player("DALLIdalli", true, 2, 42),
+                        player("Bob", true, 1, 10), player("Bot", true, 2, 9)));
+        List<Quake3Stats.RowPlayer> players = Quake3Stats.of(List.of(match), "", true, 20, Map.of(),
+                Quake3ServerDemos.read(logs)).recentMatches().get(0).players();
+
+        assertEquals("mv-261105-210059-00-PILLEpall.dm_68", players.get(1).demo().file());
+        assertEquals("dwc.PILLEpalle-tdm-q3dm7-2026.11.05-2100.dm_68", players.get(1).demo().downloadName());
+        assertEquals("mv-261105-210059-03-DALLIdall.dm_68", players.get(3).demo().file());
+        assertEquals("mv-261105-210059-04-DYGDieDrossel.dm_68", players.get(2).demo().file());
+        assertNull(players.get(4).demo());
+        assertNull(players.get(5).demo());
+    }
+
+    @Test
     public void offersNoDemosForMatchesWithoutHumans() {
         Quake3GamesLog.Match match = new Quake3GamesLog.Match("Duel", false, "pro-q3dm6", START, 60, null, null,
                 List.of(player("dwcn4cer", true, 5), player("Sarge", true, 3)));
