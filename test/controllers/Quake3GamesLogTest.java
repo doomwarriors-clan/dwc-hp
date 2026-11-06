@@ -86,6 +86,33 @@ public class Quake3GamesLogTest {
     }
 
     @Test
+    public void leavesTimeoutsOutOfTheDuration() throws IOException {
+        // Shaped after the TDM of 5 Nov 2026: two timeouts by RED, 20 minutes played in 21:25
+        String log = String.join("\n",
+                "25212.4 InitGame: \\g_gametype\\3\\mapname\\q3dm7",
+                "25212.4 ServerTime:\t20261105210057\t21:00:57 (05 Nov 2026)",
+                "25212.4 Game_Start:",
+                "25212.7 ClientUserinfoChanged: 0 n\\Red One\\t\\1",
+                "25212.7 ClientUserinfoChanged: 1 n\\Blue One\\t\\2",
+                "25313.3 Timeout: RED team",
+                "25378.4 Unpause: Complete",
+                "25647.1 Timeout: RED team",
+                "25661.7 Timein: ^1RED^7 team",
+                "25666.7 Unpause: Complete",
+                "26497.0 Game_End: Timelimit",
+                "26497.0 Exit: Timelimit hit.",
+                "26497.0 red:230  blue:163",
+                "26497.0 score: 72  ping: 13  client: 0 Red One",
+                "26497.0 score: 42  ping: 0  client: 1 Blue One",
+                "26508.3 ShutdownGame:");
+        assertEquals(1200, parse(log).get(0).durationSeconds());
+
+        // a timeout still running when the match ends counts up to the end
+        String stillPaused = log.replace("25666.7 Unpause: Complete", "26400.0 Timeout: BLUE team");
+        assertEquals(1284 - 65 - 849, parse(stillPaused).get(0).durationSeconds());
+    }
+
+    @Test
     public void showsServerTimeInGermanTime() {
         // summer time (CEST) and winter time (CET)
         assertEquals("2026-09-24T09:22:52+02:00[Europe/Berlin]",
