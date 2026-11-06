@@ -1,6 +1,7 @@
 package controllers;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,7 +28,7 @@ public final class Quake3Stats {
     private static final List<String> ACCURACY_WEAPONS = List.of("LightningGun", "Railgun", "R.Launcher");
     private static final int MIN_SHOTS_FOR_BEST_AIM = 50;
     private static final Quake3GamesLog.WeaponStat NO_SHOTS = new Quake3GamesLog.WeaponStat(0, 0);
-    private static final DateTimeFormatter JSON_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+    private static final DateTimeFormatter JSON_DATE = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
     /**
      * A player from the administration: the name the statistics show, their profile when
@@ -94,6 +95,11 @@ public final class Quake3Stats {
                            String leftName, boolean leftHuman, int leftScore,
                            String rightName, boolean rightHuman, int rightScore, int winner,
                            List<RowPlayer> players, MatchDemo multiviewDemo) {
+        /** When the match started, in German time; null when the log had no server time. */
+        public ZonedDateTime played() {
+            return Quake3GamesLog.displayTime(start);
+        }
+
         public String duration() {
             return durationSeconds / 60 + ":" + String.format("%02d", durationSeconds % 60);
         }
@@ -255,7 +261,7 @@ public final class Quake3Stats {
         ArrayNode matches = node.putArray("recentMatches");
         for (MatchRow match : recentMatches) {
             ObjectNode entry = matches.addObject();
-            entry.put("start", match.start() == null ? null : match.start().format(JSON_DATE));
+            entry.put("start", match.played() == null ? null : match.played().format(JSON_DATE));
             entry.put("gametype", match.gametype());
             entry.put("map", match.map());
             entry.put("durationSeconds", match.durationSeconds());
@@ -345,10 +351,11 @@ public final class Quake3Stats {
         if (serverDemos.isEmpty() || players.stream().allMatch(Quake3GamesLog.MatchPlayer::bot)) {
             return new MatchDemos(Arrays.asList(views), null);
         }
+        ZonedDateTime played = Quake3GamesLog.displayTime(match.start());
         for (Quake3ServerDemos.Demo demo : Quake3ServerDemos.forMatch(serverDemos, match.gametype(), match.start())) {
             if (demo.multiview()) {
                 multiview = new MatchDemo(null, false, demo.mode(), demo.file(),
-                        Quake3ServerDemos.downloadName("", match.gametype(), match.map(), match.start(), true));
+                        Quake3ServerDemos.downloadName("", match.gametype(), match.map(), played, true));
                 continue;
             }
             for (int i = 0; i < players.size(); i++) {
@@ -357,7 +364,7 @@ public final class Quake3Stats {
                     Identity identity = player.bot() ? null : aliases.get(player.name().toLowerCase());
                     String name = identity == null ? player.name() : identity.name();
                     views[i] = new MatchDemo(name, player.bot(), demo.mode(), demo.file(),
-                            Quake3ServerDemos.downloadName(name, match.gametype(), match.map(), match.start(), false));
+                            Quake3ServerDemos.downloadName(name, match.gametype(), match.map(), played, false));
                     break;
                 }
             }

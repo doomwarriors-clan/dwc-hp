@@ -441,6 +441,11 @@ to the `games.log` they belong to, so `DWC_QUAKE3_LOG_FOLDER` is all this needs:
 Under "Latest matches" on `/quake3/stats` (and in `stats.json`) a match gets
 its demos when the recording on its server started within 20 seconds of the
 match start in the `games.log`; both times come from the same server clock.
+That clock is UTC (the q3-servers containers set no `TZ`). The page shows
+match times in German time (Europe/Berlin, `stats.json` with the offset, e.g.
+`2026-11-03T18:18:01+01:00`) and the browser then converts them to the
+visitor's own time zone, which the tooltip names; the demo download names use
+German time as well.
 On the page each player's name links to the demo from their view, in team
 games listed by team, Red and Blue on lines of their own (in
 `stats.json` the `demos` list has humans first, bots marked as such), plus

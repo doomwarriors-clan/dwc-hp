@@ -69,6 +69,8 @@ on either side needs the matching change on the other:
   statistics, `<mode>/demos/` with `mv-<yymmdd>-<hhmmss>.dm_71` and
   `…-<nr>-<name>.dm_68` for demo downloads (`<mode>` = duel, tdm, ctf,
   instagib).
+- The servers' clock (games.log `ServerTime`, demo file names) is UTC: the
+  containers set no `TZ`. `Quake3GamesLog.SERVER_ZONE` assumes that.
 - `DWC_QUAKE3_PK3_FOLDER` → q3-servers `server-data/`: `.pk3` files directly in
   `baseq3/` and `osp/` are served at `/quake3/pk3/...` (the servers'
   `sv_dlURL`); the id paks `pak0`–`pak8` never.

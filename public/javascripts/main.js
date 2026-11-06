@@ -184,3 +184,24 @@
         });
     });
 })();
+
+// Match times arrive in German time; show them in the visitor's own time zone,
+// same format, with the zone in the tooltip.
+(() => {
+    const times = document.querySelectorAll('time.q3-local-time[datetime]');
+    if (!times.length) return;
+    const two = number => String(number).padStart(2, '0');
+    let zone = '';
+    try {
+        zone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    } catch (e) {
+        // an old browser keeps the German time
+    }
+    times.forEach(time => {
+        const date = new Date(time.getAttribute('datetime'));
+        if (Number.isNaN(date.getTime())) return;
+        time.textContent = two(date.getDate()) + '.' + two(date.getMonth() + 1) + '.'
+            + two(date.getFullYear() % 100) + ' ' + two(date.getHours()) + ':' + two(date.getMinutes());
+        if (zone) time.title = zone;
+    });
+})();
