@@ -352,24 +352,48 @@ public final class Quake3Stats {
             return new MatchDemos(Arrays.asList(views), null);
         }
         ZonedDateTime played = Quake3GamesLog.displayTime(match.start());
+        List<Quake3ServerDemos.Demo> unmatched = new ArrayList<>();
         for (Quake3ServerDemos.Demo demo : Quake3ServerDemos.forMatch(serverDemos, match.gametype(), match.start())) {
             if (demo.multiview()) {
                 multiview = new MatchDemo(null, false, demo.mode(), demo.file(),
                         Quake3ServerDemos.downloadName("", match.gametype(), match.map(), played, true));
                 continue;
             }
-            for (int i = 0; i < players.size(); i++) {
-                Quake3GamesLog.MatchPlayer player = players.get(i);
-                if (views[i] == null && Quake3ServerDemos.fileNamePart(player.name()).equalsIgnoreCase(demo.player())) {
-                    Identity identity = player.bot() ? null : aliases.get(player.name().toLowerCase());
-                    String name = identity == null ? player.name() : identity.name();
-                    views[i] = new MatchDemo(name, player.bot(), demo.mode(), demo.file(),
-                            Quake3ServerDemos.downloadName(name, match.gametype(), match.map(), played, false));
-                    break;
+            int index = -1;
+            for (int i = 0; i < players.size() && index < 0; i++) {
+                if (views[i] == null && Quake3ServerDemos.fileNamePart(players.get(i).name()).equalsIgnoreCase(demo.player())) {
+                    index = i;
                 }
             }
+            if (index >= 0) views[index] = view(match, played, players.get(index), demo, aliases);
+            else unmatched.add(demo);
+        }
+        // mvconvert cuts the name before it strips the colours, so a name with many colour
+        // codes loses its end in the file name (PILLEpall for PILLEpalle): take a shortened
+        // name when exactly one player without a view starts with it
+        for (Quake3ServerDemos.Demo demo : unmatched) {
+            String prefix = demo.player().toLowerCase(Locale.ROOT);
+            if (prefix.isEmpty()) continue;
+            int index = -1;
+            int candidates = 0;
+            for (int i = 0; i < players.size(); i++) {
+                if (views[i] == null && Quake3ServerDemos.fileNamePart(players.get(i).name())
+                        .toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                    index = i;
+                    candidates++;
+                }
+            }
+            if (candidates == 1) views[index] = view(match, played, players.get(index), demo, aliases);
         }
         return new MatchDemos(Arrays.asList(views), multiview);
+    }
+
+    private static MatchDemo view(Quake3GamesLog.Match match, ZonedDateTime played, Quake3GamesLog.MatchPlayer player,
+                                  Quake3ServerDemos.Demo demo, Map<String, Identity> aliases) {
+        Identity identity = player.bot() ? null : aliases.get(player.name().toLowerCase());
+        String name = identity == null ? player.name() : identity.name();
+        return new MatchDemo(name, player.bot(), demo.mode(), demo.file(),
+                Quake3ServerDemos.downloadName(name, match.gametype(), match.map(), played, false));
     }
 
     /**

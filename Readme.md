@@ -446,6 +446,10 @@ match times in German time (Europe/Berlin, `stats.json` with the offset, e.g.
 `2026-11-03T18:18:01+01:00`) and the browser then converts them to the
 visitor's own time zone, which the tooltip names; the demo download names use
 German time as well.
+A view belongs to the player whose name, without colours, is in the file name.
+`mvconvert` cuts names with many colour codes short (`PILLEpall` for
+`PILLEpalle`), so a shortened name also counts when exactly one player
+without a view starts with it.
 On the page each player's name links to the demo from their view, in team
 games listed by team, Red and Blue on lines of their own (in
 `stats.json` the `demos` list has humans first, bots marked as such), plus

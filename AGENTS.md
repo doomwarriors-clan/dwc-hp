@@ -31,8 +31,10 @@ Maintainers: Micha (`n4cer`) and Hannes (`dwc-motter`), both org owners.
 - Never commit secrets: `conf/local.conf`, `/etc/dwc/environment` values,
   `play.http.secret.key` for production, `dwc_deploy_key*` (local SSH key,
   git-ignored).
-- Commit messages and README in English. User-facing texts in
-  `conf/messages` (German) and `conf/messages.en` (English) change together.
+- English everywhere: commit messages, PR texts, README and other docs, and
+  code comments. Existing German comments are translated when a file is
+  touched anyway. The site's user-facing texts are bilingual: `conf/messages`
+  (German) and `conf/messages.en` (English) change together.
 
 ## Stack and commands
 
