@@ -9,6 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -37,6 +40,13 @@ import com.typesafe.config.Config;
  */
 final class Quake3GamesLog {
     static final int WORLD = 1022;
+    /**
+     * The clock of the game servers: their containers set no TZ, so the
+     * games.log ServerTime and the demo file names are in UTC (q3-servers).
+     */
+    static final ZoneId SERVER_ZONE = ZoneOffset.UTC;
+    /** The time zone the site shows match times in; the page converts them to the visitor's own. */
+    static final ZoneId DISPLAY_ZONE = ZoneId.of("Europe/Berlin");
     /** Log subfolder -> label that replaces the gametype for the matches logged there. */
     private static final Map<String, String> FOLDER_LABELS = Map.of("instagib", "Instagib");
 
@@ -77,6 +87,11 @@ final class Quake3GamesLog {
     private static final DateTimeFormatter SERVER_TIME = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private Quake3GamesLog() { }
+
+    /** A time of the server clock in German time; null stays null. */
+    static ZonedDateTime displayTime(LocalDateTime serverTime) {
+        return serverTime == null ? null : serverTime.atZone(SERVER_ZONE).withZoneSameInstant(DISPLAY_ZONE);
+    }
 
     /**
      * Every finished match in every games.log below the folder, including

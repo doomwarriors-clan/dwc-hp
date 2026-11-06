@@ -12,6 +12,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class Quake3GamesLogTest {
@@ -82,6 +83,16 @@ public class Quake3GamesLogTest {
         assertEquals(LocalDateTime.of(2026, 9, 24, 7, 22, 52), match.start());
         assertEquals(600, match.durationSeconds());
         assertFalse(match.teamGame());
+    }
+
+    @Test
+    public void showsServerTimeInGermanTime() {
+        // summer time (CEST) and winter time (CET)
+        assertEquals("2026-09-24T09:22:52+02:00[Europe/Berlin]",
+                Quake3GamesLog.displayTime(LocalDateTime.of(2026, 9, 24, 7, 22, 52)).toString());
+        assertEquals("2026-11-03T18:18:01+01:00[Europe/Berlin]",
+                Quake3GamesLog.displayTime(LocalDateTime.of(2026, 11, 3, 17, 18, 1)).toString());
+        assertNull(Quake3GamesLog.displayTime(null));
     }
 
     @Test
@@ -218,6 +229,8 @@ public class Quake3GamesLogTest {
         com.fasterxml.jackson.databind.JsonNode match = json.get("recentMatches").get(0);
         assertEquals("dwc.alpha", match.get("winner").asText());
         assertEquals(2, match.get("leftScore").asInt());
+        // The server clock is UTC; the site gives German time with its offset.
+        assertEquals("2026-09-24T09:22:52+02:00", match.get("start").asText());
 
         assertEquals("all", Quake3Stats.empty().toJson("", false).get("mode").asText());
     }
