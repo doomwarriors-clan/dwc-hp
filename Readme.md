@@ -409,6 +409,10 @@ their nick from the lineup with a link to their profile, or just carry a name
 for guests who are not members. The page also lists the nicks from the logs
 that belong to nobody yet. Changes show up on the statistics page right away.
 
+A match's duration is the time from `Game_Start` to `Exit` without the OSP
+timeouts (`Timeout:` until `Unpause: Complete`), so a 20-minute TDM with two
+timeouts still shows 20:00.
+
 #### Map downloads for the game servers
 
 Players missing a map get it from the server, but Quake 3's built-in UDP

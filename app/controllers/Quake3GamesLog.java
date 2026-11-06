@@ -144,6 +144,9 @@ final class Quake3GamesLog {
                 case "ClientUserinfoChanged" -> level.userinfo(rest);
                 case "Kill" -> level.kill(rest);
                 case "Exit" -> level.exit(time);
+                // OSP: a team calls a timeout, the game resumes with "Unpause: Complete"
+                case "Timeout" -> level.pause(time);
+                case "Unpause" -> level.unpause(time);
                 case "red" -> level.teamScores(rest);
                 case "score" -> level.score(rest);
                 case "Weapon_Stats" -> level.weaponStats(rest);
@@ -240,6 +243,9 @@ final class Quake3GamesLog {
         private LocalDateTime serverTime;
         private Double startTime;
         private Double exitTime;
+        /** Seconds the match stood still in timeouts; pausedSince is set while it does. */
+        private double pausedSeconds;
+        private Double pausedSince;
         private Integer redScore, blueScore;
         private final Map<Integer, Slot> slots = new HashMap<>();
         private final Map<String, Tally> tallies = new LinkedHashMap<>();
@@ -273,8 +279,21 @@ final class Quake3GamesLog {
             startTime = time;
         }
 
+        void pause(double time) {
+            if (running() && pausedSince == null) pausedSince = time;
+        }
+
+        void unpause(double time) {
+            if (pausedSince == null) return;
+            pausedSeconds += time - pausedSince;
+            pausedSince = null;
+        }
+
         void exit(double time) {
-            if (startTime != null && exitTime == null) exitTime = time;
+            if (startTime != null && exitTime == null) {
+                unpause(time);
+                exitTime = time;
+            }
         }
 
         void userinfo(String rest) {
@@ -378,7 +397,7 @@ final class Quake3GamesLog {
             LocalDateTime start = serverTime == null ? null
                     : serverTime.plusSeconds(Math.round(startTime - initTime));
             matches.add(new Match(label != null ? label : gametypeLabel(gametype), teamGame(), map, start,
-                    (int) Math.round(exitTime - startTime), redScore, blueScore, players));
+                    (int) Math.round(exitTime - startTime - pausedSeconds), redScore, blueScore, players));
         }
     }
 }
