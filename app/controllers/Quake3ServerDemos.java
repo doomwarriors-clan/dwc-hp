@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -130,9 +131,9 @@ final class Quake3ServerDemos {
     /**
      * The name a visitor saves the demo under, like the clan war demos
      * (models.ScoreDemo): dwc.&lt;player&gt;-&lt;mode&gt;-&lt;map&gt;-&lt;yyyy.MM.dd&gt;-&lt;HHmm&gt;.dm_68,
-     * and dwc.multiview-&lt;mode&gt;-…-&lt;HHmm&gt;.dm_71 for the multiview demo.
+     * and dwc.multiview-&lt;mode&gt;-…-&lt;HHmm&gt;.dm_71 for the multiview demo; start is in German time.
      */
-    static String downloadName(String player, String gametype, String map, LocalDateTime start, boolean multiview) {
+    static String downloadName(String player, String gametype, String map, TemporalAccessor start, boolean multiview) {
         return "dwc." + ScoreDemo.part(multiview ? "multiview" : CLAN_TAG.matcher(player.trim()).replaceFirst(""))
                 + "-" + ScoreDemo.part(gametype.toLowerCase(Locale.ROOT)) + "-" + ScoreDemo.part(map)
                 + "-" + DAY.format(start) + "-" + TIME.format(start) + (multiview ? ".dm_71" : ".dm_68");

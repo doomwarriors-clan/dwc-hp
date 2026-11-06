@@ -82,10 +82,10 @@ public class Quake3ServerDemosTest {
         assertEquals(List.of(false, true), demos.stream().map(Quake3Stats.MatchDemo::bot).toList());
         assertEquals("dwc.n4cer", demos.get(0).player());
         assertEquals("mv-261103-171802-00-dwcn4cer.dm_68", demos.get(0).file());
-        assertEquals("dwc.n4cer-duel-pro_q3dm6-2026.11.03-1718.dm_68", demos.get(0).downloadName());
-        assertEquals("/quake3/demo/duel/mv-261103-171802-00-dwcn4cer.dm_68?name=dwc.n4cer-duel-pro_q3dm6-2026.11.03-1718.dm_68",
+        assertEquals("dwc.n4cer-duel-pro_q3dm6-2026.11.03-1818.dm_68", demos.get(0).downloadName());
+        assertEquals("/quake3/demo/duel/mv-261103-171802-00-dwcn4cer.dm_68?name=dwc.n4cer-duel-pro_q3dm6-2026.11.03-1818.dm_68",
                 demos.get(0).url());
-        assertEquals("dwc.Sarge-duel-pro_q3dm6-2026.11.03-1718.dm_68", demos.get(1).downloadName());
+        assertEquals("dwc.Sarge-duel-pro_q3dm6-2026.11.03-1818.dm_68", demos.get(1).downloadName());
 
         // on the page every player, in score order, carries the demo from their view
         List<Quake3Stats.RowPlayer> players = stats.recentMatches().get(0).players();
@@ -95,7 +95,7 @@ public class Quake3ServerDemosTest {
 
         Quake3Stats.MatchDemo multiview = stats.recentMatches().get(0).multiviewDemo();
         assertEquals("mv-261103-171802.dm_71", multiview.file());
-        assertEquals("dwc.multiview-duel-pro_q3dm6-2026.11.03-1718.dm_71", multiview.downloadName());
+        assertEquals("dwc.multiview-duel-pro_q3dm6-2026.11.03-1818.dm_71", multiview.downloadName());
     }
 
     @Test
@@ -128,7 +128,7 @@ public class Quake3ServerDemosTest {
                 Quake3ServerDemos.read(logs)).recentMatches().get(0).players();
 
         assertEquals("mv-261105-210059-00-PILLEpall.dm_68", players.get(1).demo().file());
-        assertEquals("dwc.PILLEpalle-tdm-q3dm7-2026.11.05-2100.dm_68", players.get(1).demo().downloadName());
+        assertEquals("dwc.PILLEpalle-tdm-q3dm7-2026.11.05-2200.dm_68", players.get(1).demo().downloadName());
         assertEquals("mv-261105-210059-03-DALLIdall.dm_68", players.get(3).demo().file());
         assertEquals("mv-261105-210059-04-DYGDieDrossel.dm_68", players.get(2).demo().file());
         assertNull(players.get(4).demo());
