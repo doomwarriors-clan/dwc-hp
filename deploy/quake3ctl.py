@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Minimal privileged sidecar that lets the dwc admin panel start/stop the
-Quake 3 docker-compose stacks and put files uploaded over SFTP into place,
+Quake 3 and ET:QW docker-compose stacks and put files uploaded over SFTP into place,
 without granting the dwc web process itself any Docker, systemd or file
 system privileges beyond its own folders.
 
@@ -32,6 +32,8 @@ UNITS = {
     "tdm": "quake3@tdm.service",
     "ctf": "quake3@ctf.service",
     "instagib": "quake3@instagib.service",
+    # ET:QW, separate compose project (doomwarriors-clan/etqw-server).
+    "etqw": "etqw.service",
 }
 
 TOKEN = os.environ.get("QUAKE3CTL_TOKEN", "")

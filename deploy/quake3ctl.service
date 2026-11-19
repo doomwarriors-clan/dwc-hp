@@ -9,7 +9,7 @@ EnvironmentFile=/etc/dwc/quake3ctl.env
 Restart=on-failure
 RestartSec=5
 # Runs as root: it only ever calls "systemctl start/stop/is-active" on the
-# hardcoded quake3@*.service units, and moves files from the SFTP upload
+# hardcoded quake3@*.service and etqw.service units, and moves files from the SFTP upload
 # folder into the hardcoded target folders; never a shell or user input.
 NoNewPrivileges=true
 # /home stays read-only except for the q3 servers' pk3 folders, which uploads

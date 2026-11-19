@@ -359,7 +359,8 @@ The admin panel's "Quake 3 servers" page starts/stops the Duel/TDM/CTF/Instagib
 docker-compose stacks. The `dwc` web process itself is never given Docker or
 systemd rights for this: it only talks over `localhost` to a small
 root-owned sidecar (`deploy/quake3ctl.py`) that is the sole thing allowed to
-start/stop four hardcoded `quake3@<name>.service` units.
+start/stop four hardcoded `quake3@<name>.service` units, plus
+`etqw.service` for the ET:QW server.
 
 All game types are services (`q3server-duel`/`q3server-tdm`/`q3server-ctf`/`q3server-instagib`)
 in the one docker-compose.yml at `/home/micha/docker/q3-osp-server`; the
@@ -368,12 +369,19 @@ in the one docker-compose.yml at `/home/micha/docker/q3-osp-server`; the
 game type doesn't touch the others. Adjust the path in
 `deploy/quake3@.service` if that project ever moves.
 
+The ET:QW server is its own compose project
+([doomwarriors-clan/etqw-server](https://github.com/doomwarriors-clan/etqw-server),
+checkout at `/home/micha/docker/etqw-server`, service `etqw-server`);
+`deploy/etqw.service` starts/stops it and shows up on the same admin page
+as "ET:QW" (quake3ctl name `etqw`).
+
 One-time setup on the host:
 
 ```bash
 install -o root -g root -m 0755 deploy/quake3ctl.py /usr/local/sbin/quake3ctl.py
 install -o root -g root -m 0644 deploy/quake3ctl.service /etc/systemd/system/quake3ctl.service
 install -o root -g root -m 0644 "deploy/quake3@.service" "/etc/systemd/system/quake3@.service"
+install -o root -g root -m 0644 deploy/etqw.service /etc/systemd/system/etqw.service
 cp deploy/quake3ctl.env.example /etc/dwc/quake3ctl.env
 chown root:root /etc/dwc/quake3ctl.env
 chmod 0600 /etc/dwc/quake3ctl.env
@@ -390,11 +398,13 @@ until this token is configured.
 #### Public server status in the site sidebar
 
 Independently of the admin control above, every page's right-hand sidebar
-shows a "Quake 3 servers" box with each server's address and player count
+shows a "Game servers" box with each server's address and player count
 once `DWC_QUAKE3_PUBLIC_HOST` and the `DWC_QUAKE3_{DUEL,TDM,CTF,INSTAGIB}_PORT`
-variables are set in `/etc/dwc/environment` (see
+variables (and `DWC_ETQW_PORT` for the ET:QW server) are set in `/etc/dwc/environment` (see
 `deploy/environment.example`). This queries the servers' own UDP query
-protocol directly from `dwc.service` (no sidecar involved) and is fetched
+protocol directly from `dwc.service` (no sidecar involved; Quake 3
+`getinfo`, ET:QW the idTech 4 `getInfo` packet as qstat sends it, bots count
+as players) and is fetched
 client-side so it stays live even on pages that are cached for minutes.
 Leave the host unset to hide the box (it falls back to "empty").
 
