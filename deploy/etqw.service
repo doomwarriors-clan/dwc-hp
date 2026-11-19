@@ -1,0 +1,19 @@
+[Unit]
+Description=ET:QW server (docker compose)
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# doomwarriors-clan/etqw-server checkout; one service in its own compose
+# project, controlled by quake3ctl (name "etqw") like the quake3@ units.
+WorkingDirectory=/home/micha/docker/etqw-server
+ExecStart=/usr/bin/docker compose up -d etqw-server
+ExecStop=/usr/bin/docker compose stop etqw-server
+TimeoutStartSec=120
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

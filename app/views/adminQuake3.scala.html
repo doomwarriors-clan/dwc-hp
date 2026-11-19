@@ -1,9 +1,9 @@
 @(request: Http.Request, statuses: java.util.List[controllers.Quake3ControlClient.Status], error: String, messages: play.i18n.Messages)
 
-@main("Quake 3 servers", messages, noindex = true) {
+@main("Game servers", messages, noindex = true) {
     <div class="admin-page">
         <p class="admin-back"><a href="@controllers.routes.AdminController.index()">&laquo; Back to administration</a></p>
-        <div class="admin-header"><h1>Quake 3 servers</h1></div>
+        <div class="admin-header"><h1>Game servers</h1></div>
         @request.flash().get("success").map { message =>
             <div class="admin-message success">@message</div>
         }

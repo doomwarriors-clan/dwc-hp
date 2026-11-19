@@ -12,6 +12,7 @@ import play.libs.ws.WSResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,7 +23,7 @@ import java.util.concurrent.CompletionStage;
 /**
  * Talks to the quake3ctl sidecar (deploy/quake3ctl.py), a small root-owned
  * process that is the only thing on the host allowed to start/stop the
- * Quake 3 docker-compose stacks and to move files uploaded over SFTP into
+ * Quake 3 and ET:QW docker-compose stacks and to move files uploaded over SFTP into
  * the game servers' and the download section's folders. The dwc web process
  * itself has no Docker, systemd or such file privileges; it only ever calls
  * this fixed, token-authenticated HTTP endpoint on localhost.
@@ -30,7 +31,9 @@ import java.util.concurrent.CompletionStage;
 @Singleton
 public final class Quake3ControlClient {
     public enum Server {
-        DUEL("duel", "Duel"), TDM("tdm", "TDM"), CTF("ctf", "CTF"), INSTAGIB("instagib", "Instagib");
+        DUEL("duel", "Duel"), TDM("tdm", "TDM"), CTF("ctf", "CTF"), INSTAGIB("instagib", "Instagib"),
+        // Not a Quake 3 server: doomwarriors-clan/etqw-server on the same host (etqw.service).
+        ETQW("etqw", "ET:QW");
 
         public final String id;
         public final String label;
@@ -75,8 +78,7 @@ public final class Quake3ControlClient {
     }
 
     CompletionStage<List<Status>> statusAll() {
-        List<CompletionStage<Status>> futures = List.of(
-                status(Server.DUEL), status(Server.TDM), status(Server.CTF), status(Server.INSTAGIB));
+        List<CompletionStage<Status>> futures = Arrays.stream(Server.values()).map(this::status).toList();
         return CompletableFuture.allOf(futures.stream().map(CompletionStage::toCompletableFuture).toArray(CompletableFuture[]::new))
                 .thenApply(ignored -> futures.stream().map(CompletionStage::toCompletableFuture)
                         .map(CompletableFuture::join).toList());
