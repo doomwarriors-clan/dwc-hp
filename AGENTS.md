@@ -15,6 +15,7 @@ servers (Duel, TDM, CTF, Instagib) with the OSP mod. Repos in the GitHub org
 | `Quake3e` | engine: fork of ec-/Quake3e | `dwc` |
 | `q3-servers` (private) | Docker Compose deployment of the servers | `main` |
 | `dwc-hp` (this) | clan homepage: news, clan wars, members, Quake 3 stats and demos, server control | `master` |
+| `etqw-server` | Docker Compose deployment of the ET:QW 1.5 server (same host) | `main` |
 | `osp` (planned) | OSP mod sources, released as "OSP 1.03a-dwc" | – |
 
 Maintainers: Micha (`n4cer`) and Hannes (`dwc-motter`), both org owners.
@@ -82,3 +83,17 @@ on either side needs the matching change on the other:
 - `DWC_QUAKE3_PUBLIC_HOST`, `DWC_QUAKE3_{DUEL,TDM,CTF,INSTAGIB}_PORT` for the
   status board. The q3-servers test instance (UDP 27970) is deliberately not
   part of the site.
+
+## Contract with etqw-server (do not break silently)
+
+The ET:QW server (`doomwarriors-clan/etqw-server`) runs on the same host as
+its own compose project. It shares the Quake 3 plumbing:
+
+- `deploy/etqw.service` runs `docker compose up -d etqw-server` / `stop` in
+  `/home/micha/docker/etqw-server`; `quake3ctl` controls it as `etqw`
+  (`Quake3ControlClient.Server.ETQW`).
+- `DWC_ETQW_PORT` (UDP 27733) for the status board, queried with the idTech 4
+  `getInfo` packet (`Quake3StatusScheduler.parseEtqwInfoResponse`). The entry
+  `etqw` in `/quake3-status.json` is scraped by my-observability
+  (`q3_server_*{server="etqw"}`), so keep the id stable.
+- No statistics, demos or pk3 downloads for ET:QW.
